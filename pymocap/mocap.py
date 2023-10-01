@@ -12,6 +12,7 @@ try:
     # navlie will be an optional dependency. If it is not installed, some
     # functions will not work. but thats okay.
     from navlie.lib.states import SE3State, SE23State
+    from navlie.lib import IMUState
 
 except ImportError:
     # If not installed, then create dummy classes so that the user can still
@@ -59,7 +60,7 @@ class MocapTrajectory:
 
         self.stamps = stamps
         self.raw_position = position_data
-        self.raw_quaternion = quaternion_data
+        self.raw_quaternion = quaternion_data / np.linalg.norm(quaternion_data, axis=1)[:, None]
         self.frame_id = frame_id
 
         if quat_stamps is None:
@@ -378,7 +379,7 @@ class MocapTrajectory:
         return T
 
     def to_navlie(
-        self, stamps: np.ndarray, extended_pose: bool = False
+        self, stamps: np.ndarray, state_type: str = False
     ) -> List[SE23State]:
         """
         Creates navlie ``SE3State`` or ``SE23State`` objects from the trajectory.
@@ -396,18 +397,24 @@ class MocapTrajectory:
         List[SE23State]
             ``navlie`` state objects at the query times
         """
-        if extended_pose:
+        if state_type=="SE23":
             T = self.extended_pose_matrix(stamps)
             return [
                 SE23State(T[i, :, :], stamps[i], self.frame_id)
                 for i in range(len(stamps))
             ]
 
-        else:
+        elif state_type=="SE3":
             T = self.pose_matrix(stamps)
 
             return [
                 SE3State(T[i, :, :], stamps[i], self.frame_id)
+                for i in range(len(stamps))
+            ]
+        elif state_type=="IMU":
+            T = self.extended_pose_matrix(stamps)
+            return [
+                IMUState(T[i, :, :], [0,0,0],[0,0,0], stamps[i], self.frame_id)
                 for i in range(len(stamps))
             ]
 

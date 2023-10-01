@@ -34,7 +34,7 @@ class IMUData:
         angular_velocity = []
 
         for p in imu_data:
-            stamps.append(p.header.stamp.to_sec())
+            stamps.append(p.header.stamp.sec + 1e-9*p.header.stamp.nanosec)
             acceleration.append(
                 [
                     p.linear_acceleration.x,

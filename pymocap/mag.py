@@ -38,7 +38,7 @@ class MagnetometerData:
         magnetic_field = []
 
         for p in imu_data:
-            stamps.append(p.header.stamp.to_sec())
+            stamps.append(p.header.stamp.sec + p.header.stamp.nanosec * 1e-9)
             magnetic_field.append(
                 [
                     p.magnetic_field.x,

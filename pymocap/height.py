@@ -47,7 +47,7 @@ class HeightData:
         height = []
         stamps = []
         for h in height_data:
-            stamps.append(h.header.stamp.to_sec())
+            stamps.append(h.header.stamp.sec + h.header.stamp.nanosec * 1e-9)
             height.append(h.range)
 
         stamps = np.array(stamps)

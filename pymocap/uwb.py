@@ -5,9 +5,10 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 from .utils import bag_to_list, bmv
 from .mocap import MocapTrajectory
+import os
 
 try: 
-    from navlie.lib.models import RangePoseToPose
+    from navlie.lib.models import RangePoseToPose, RangeRelativePose
     from navlie.types import Measurement
 except ImportError:
     class RangePoseToPose:
@@ -115,7 +116,7 @@ class RangeData:
         std2 = []
 
         for r in range_data:
-            stamps.append(r.header.stamp.to_sec())
+            stamps.append(r.header.stamp.sec + r.header.stamp.nanosec * 1e-9)
             range_.append(r.range)
             from_id.append(r.from_id)
             to_id.append(r.to_id)
@@ -217,7 +218,7 @@ class RangeData:
         )
         return self[match_mask]
 
-    def to_navlie(self, tags: List[Tag], variance: float = None, state_id: Any = None) -> List[Measurement]:
+    def to_navlie(self, tags: List[Tag], variance: float = None, state_id: Any = None, relative=False) -> List[Measurement]:
         """
         Convert to a list of `navlie` measurements.
 
@@ -249,13 +250,21 @@ class RangeData:
             else:
                 v = self.covariance[i]
 
-            model = RangePoseToPose(
-                from_tag.position,
-                to_tag.position,
-                from_tag.parent_id,
-                to_tag.parent_id,
-                v,
-            )
+            if relative:
+                model = RangeRelativePose(
+                    from_tag.position,
+                    to_tag.position,
+                    to_tag.parent_id,
+                    v,
+                )
+            else:
+                model = RangePoseToPose(
+                    from_tag.position,
+                    to_tag.position,
+                    from_tag.parent_id,
+                    to_tag.parent_id,
+                    v,
+                )
 
 
             measurements.append(
@@ -424,7 +433,13 @@ class RangeData:
         """
 
         # Retrieve pre-determined calibration results
-        with open("pymocap/calib_results.pickle", "rb") as pickle_file:
+        
+
+        # Get path to calibration results, adjacent to this file
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+        calib_path = os.path.join(file_dir, "calib_results.pickle")
+
+        with open(calib_path, "rb") as pickle_file:
             calib_results = pickle.load(pickle_file)
 
         delays = {t.id: t.antenna_delay for t in tags}
