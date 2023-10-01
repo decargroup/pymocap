@@ -131,7 +131,7 @@ def bwedge_so3(phi: np.ndarray) -> np.ndarray:
     """
     Batch wedge for SO(3). phi is provided as a [N x 3] ndarray
     """
-
+    phi = np.atleast_2d(phi)
     if phi.shape[1] != 3:
         raise ValueError("phi must have shape ({},) or (N,{})".format(3, 3))
 
@@ -143,7 +143,7 @@ def bwedge_so3(phi: np.ndarray) -> np.ndarray:
     Xi[:, 2, 0] = -phi[:, 1]
     Xi[:, 2, 1] = phi[:, 0]
 
-    return Xi
+    return Xi.squeeze()
 
 
 def bvee_so3(Xi: np.ndarray):
@@ -251,9 +251,10 @@ def bquat_to_so3(quat: np.ndarray, ordering="wxyz"):
     Form a rotation matrix from a unit length quaternion.
     Valid orderings are 'xyzw' and 'wxyz'.
     """
-
-    if not np.allclose(np.linalg.norm(quat, axis=1), 1.0):
-        raise ValueError("Quaternions must be unit length")
+    quat = np.atleast_2d(quat)
+    
+    # Normalize the quaternion
+    quat = quat / np.linalg.norm(quat, axis=1, keepdims=True)
 
     if ordering == "wxyz":
         eta = quat[:, 0]
@@ -270,7 +271,7 @@ def bquat_to_so3(quat: np.ndarray, ordering="wxyz"):
         (1 - 2 * eps_T @ eps) * beye(3, quat.shape[0])
         + 2 * eps @ eps_T
         + 2 * eta * bwedge_so3(eps.squeeze())
-    )
+    ).squeeze()
 
 
 def bso3_to_quat(C: np.ndarray, order="wxyz"):

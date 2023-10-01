@@ -11,5 +11,8 @@ setup(
         "rosbags",
         "scipy",
         "pymlg @ git+https://github.com/decargroup/pymlg@main",
-    ]
+    ],
+    #packages required for testing
+    tests_require = ["navlie @ git+https://github.com/decargroup/navlie@main"],
+
 )

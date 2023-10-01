@@ -48,7 +48,6 @@ Thumbs.db
 *.mov
 *.wmv
 
-data/
 *.egg-info
 .vscode/
 build/

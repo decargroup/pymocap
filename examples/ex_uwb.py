@@ -19,22 +19,22 @@ tags = [
     Tag(7, "ifo001", [-0.175, 0.157, -0.053], 0.2377),
 ]
 
-filename = "data/bias_calib2.bag"
+filename = "data/random2.bag"
 agent = "ifo001"
 agent_list = ["ifo001", "ifo002", "ifo003"]
 
 
 # Extract data
-with rosbag.Bag(filename) as bag:
-    mocaps = [MocapTrajectory.from_bag(bag, a) for a in agent_list]
-    uwb = RangeData.from_bag(bag, f"/{agent}/uwb/range")
+mocaps = [MocapTrajectory.from_bag(filename, a) for a in agent_list]
+uwb = RangeData.from_bag(filename, f"/{agent}/uwb/range")
 
 # Do power-correlated bias correction
 uwb_calib = uwb.apply_calibration(tags)
 uwb_calib = uwb_calib.remove_outliers(mocaps, tags, max_error = 0.5)
 
 
-
 fig, axs = uwb.plot(mocaps, tags)
+fig.suptitle("UWB Measurements (raw)")
 fig, axs = uwb_calib.plot(mocaps, tags)
+fig.suptitle("UWB Measurements (calibrated, outliers removed)")
 plt.show()

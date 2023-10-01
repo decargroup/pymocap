@@ -228,13 +228,13 @@ class MagnetometerData:
         phi = x[12:14]
         m_a = SO3.Exp([0, phi[0], phi[1]]) @ m_a_0
 
-        ("Estimated distortion matrix:")
+        print("Estimated distortion matrix:")
         print(D)
         print(f"                             * {scaling_factor}")
-        ("Estimated bias vector:")
+        print("Estimated bias vector:")
         print(b)
         print(f"                             * {scaling_factor}")
-        ("Estimated magnetic vector in mocap world frame:")
+        print("Estimated magnetic vector in mocap world frame:")
         print(m_a)
 
         # D_inv = np.linalg.inv(D)

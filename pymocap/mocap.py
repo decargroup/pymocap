@@ -60,7 +60,7 @@ class MocapTrajectory:
 
         self.stamps = stamps
         self.raw_position = position_data
-        self.raw_quaternion = quaternion_data / np.linalg.norm(quaternion_data, axis=1)[:, None]
+        self.raw_quaternion = quaternion_data #/ np.linalg.norm(quaternion_data, axis=1)[:, None]
         self.frame_id = frame_id
 
         if quat_stamps is None:
@@ -169,6 +169,13 @@ class MocapTrajectory:
             topics = reader.topics.keys()
 
         vrpn_topics = [s for s in topics if search_str in s]
+
+        if len(vrpn_topics) == 0:
+            raise ValueError(
+                f"No topics found for body {body_id}. Please check that"
+                + " a vrpn_client_node is running and publishing a topic"
+                + " of the form `vrpn_client_node/<body_id>/pose`."
+            )
 
         if len(vrpn_topics) > 1:
             # If more than one matching topic, filter more
@@ -310,8 +317,8 @@ class MocapTrajectory:
         np.ndarray with shape (N,4)
             quaternion data
         """
-        q = self._quat_spline(stamps, 0).T
-        return q / np.linalg.norm(q, axis=1)[:, None]
+        q = np.atleast_2d(self._quat_spline(stamps, 0).T)
+        return (q / np.linalg.norm(q, axis=1)[:, None]).squeeze()
 
     def rot_matrix(self, stamps):
         """
@@ -345,13 +352,17 @@ class MocapTrajectory:
         np.ndarray with shape (N,4,4)
             pose data
         """
-        r = self.position(stamps)
+        if isinstance(stamps, (float, int)):
+            stamps = np.array([stamps])
+
+        r = np.atleast_2d(self.position(stamps))
         C = self.rot_matrix(stamps)
-        T = np.zeros((C.shape[0], 4, 4))
+
+        T = np.zeros((len(stamps), 4, 4))
         T[:, :3, :3] = C
         T[:, :3, 3] = r
         T[:, 3, 3] = 1
-        return T
+        return T.squeeze()
 
     def extended_pose_matrix(self, stamps):
         """
@@ -367,10 +378,13 @@ class MocapTrajectory:
         np.ndarray with shape (N,5,5)
             extended pose data
         """
+        if isinstance(stamps, (float, int)):
+            stamps = np.array([stamps])
+
         r = self.position(stamps)
         C = self.rot_matrix(stamps)
         v = self.velocity(stamps)
-        T = np.zeros((C.shape[0], 5, 5))
+        T = np.zeros((len(stamps), 5, 5))
         T[:, :3, :3] = C
         T[:, :3, 3] = v
         T[:, :3, 4] = r
@@ -379,7 +393,7 @@ class MocapTrajectory:
         return T
 
     def to_navlie(
-        self, stamps: np.ndarray, state_type: str = False
+        self, stamps: np.ndarray, state_type: str = "SE3"
     ) -> List[SE23State]:
         """
         Creates navlie ``SE3State`` or ``SE23State`` objects from the trajectory.
@@ -417,6 +431,8 @@ class MocapTrajectory:
                 IMUState(T[i, :, :], [0,0,0],[0,0,0], stamps[i], self.frame_id)
                 for i in range(len(stamps))
             ]
+        else:
+            raise ValueError("state_type must be `SE3` or `SE23` or `IMU`")
 
     def angular_velocity(self, stamps: np.ndarray) -> np.ndarray:
         """

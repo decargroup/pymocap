@@ -6,13 +6,12 @@ import seaborn as sns
 import rosbag
 
 sns.set_theme(style="whitegrid")
-filename = "data/imu_calib.bag"
+filename = "data/random2.bag"
 agent = "ifo001"
 
 # Extract data
-with rosbag.Bag(filename) as bag:
-    mocap = MocapTrajectory.from_bag(bag, agent)
-    height = HeightData.from_bag(bag, f"/{agent}/mavros/distance_sensor/hrlv_ez4_pub")
+mocap = MocapTrajectory.from_bag(filename, agent)
+height = HeightData.from_bag(filename, f"/{agent}/mavros/distance_sensor/hrlv_ez4_pub")
 
 # %% Plotting
 height.plot(mocap)

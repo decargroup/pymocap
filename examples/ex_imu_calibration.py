@@ -3,13 +3,12 @@ import rosbag
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-filename = "data/imu_calib.bag"
+filename = "data/ifo003_bag_2022-12-08-08-43-33.bag"
 agent = "ifo003"
 
 # Extract data
-with rosbag.Bag(filename, "r") as bag:
-    imu = IMUData.from_bag(bag, f"/{agent}/mavros/imu/data_raw")
-    mocap = MocapTrajectory.from_bag(bag, agent)
+imu = IMUData.from_bag(filename, f"/{agent}/mavros/imu/data_raw")
+mocap = MocapTrajectory.from_bag(filename, agent)
 
 # Do calibration. See function documentation for interpretation of the output.
 C_bm, C_wl, gyro_bias, accel_bias = imu.calibrate(mocap)
@@ -38,7 +37,7 @@ start_idx = 500  # sometimes weird stuff at the beginning
 process = IMUKinematics(None)
 imu_list: List[IMU] = imu.to_navlie()
 imu_list = imu_list[start_idx:]
-traj_true: List[SE23State] = mocap.to_navlie(imu.stamps[start_idx:], extended_pose=True)
+traj_true: List[SE23State] = mocap.to_navlie(imu.stamps[start_idx:], "SE23")
 x = traj_true[0]
 x.velocity = 0
 
