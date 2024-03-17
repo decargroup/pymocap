@@ -218,7 +218,7 @@ class RangeData:
         )
         return self[match_mask]
 
-    def to_navlie(self, tags: List[Tag], variance: float = None, state_id: Any = None, relative=False) -> List[Measurement]:
+    def to_navlie(self, tags: List[Tag], variance: float = None, state_id: Any = None, relative=False, pair: Tuple[int, int] = None) -> List[Measurement]:
         """
         Convert to a list of `navlie` measurements.
 
@@ -242,39 +242,43 @@ class RangeData:
         measurements = []
 
         for i, stamp in enumerate(self.stamps):
+            # Get the IDs involved in the pair
             from_tag = tag_dict[self.from_id[i]]
             to_tag = tag_dict[self.to_id[i]]
 
-            if variance is not None:
-                v = variance
-            else:
-                v = self.covariance[i]
+            # Return the measurement only if is the requested pair.
+            # or all if no pair is specified.
+            if (from_tag.id, to_tag.id) == pair or pair is None:
 
-            if relative:
-                model = RangeRelativePose(
-                    from_tag.position,
-                    to_tag.position,
-                    to_tag.parent_id,
-                    v,
+                if variance is not None:
+                    v = variance
+                else:
+                    v = self.covariance[i]
+                if relative:
+                    model = RangeRelativePose(
+                        from_tag.position,
+                        to_tag.position,
+                        to_tag.parent_id,
+                        v,
+                    )
+                else:
+                    model = RangePoseToPose(
+                        from_tag.position,
+                        to_tag.position,
+                        from_tag.parent_id,
+                        to_tag.parent_id,
+                        v,
+                    )
+
+
+                measurements.append(
+                    Measurement(self.range[i], stamp, model, state_id=state_id)
                 )
-            else:
-                model = RangePoseToPose(
-                    from_tag.position,
-                    to_tag.position,
-                    from_tag.parent_id,
-                    to_tag.parent_id,
-                    v,
-                )
-
-
-            measurements.append(
-                Measurement(self.range[i], stamp, model, state_id=state_id)
-            )
 
         return measurements
 
     def plot(
-        self, mocaps: List[MocapTrajectory] = None, tags: List[Tag] = None
+        self, mocaps: List[MocapTrajectory] = None, tags: List[Tag] = None, variance = None
     ) -> Tuple[plt.Figure, List[plt.Axes]]:
         """
         Plot the range data.
@@ -320,6 +324,13 @@ class RangeData:
             ax.scatter(data.stamps, data.range, s=1)
             ax.set_title(f"{pair[0]} to {pair[1]}")
 
+            if variance is None:
+                var = data.covariance
+            elif isinstance(variance, (float, int)):
+                var = np.ones_like(data.covariance) * variance
+            else:
+                raise ValueError("variance must be a float or int")
+
             if mocaps is not None and tags is not None:
                 pose_dict = {m.frame_id: m.pose_matrix(data.stamps) for m in mocaps}
                 tag1 = tag_dict[pair[0]]
@@ -335,7 +346,7 @@ class RangeData:
                     tag2.position,
                 )
                 ax.plot(data.stamps, range_, color="r")
-                three_sigma = 3 * np.sqrt(data.covariance)
+                three_sigma = 3 * np.sqrt(var)
                 ax.fill_between(
                     data.stamps,
                     range_ - three_sigma,

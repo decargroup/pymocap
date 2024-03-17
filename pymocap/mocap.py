@@ -77,8 +77,8 @@ class MocapTrajectory:
         # First, filter out positions with zero norm
         # We assume that this is gaps in the mocap data
         is_valid = np.linalg.norm(pos, axis=1) > 1e-6
-        stamps = stamps[is_valid]
-        pos = pos[is_valid]
+        # stamps = stamps[is_valid]
+        # pos = pos[is_valid]
 
         # Fit spline
         self._pos_spline = csaps(stamps, pos.T, smooth=0.9999)
@@ -87,8 +87,8 @@ class MocapTrajectory:
         # First, filter out invalid quaternions with zero norm
         # We assume that this is gaps in the mocap data
         is_valid = np.linalg.norm(quat, axis=1) > 1e-6
-        stamps = stamps[is_valid]
-        quat = quat[is_valid]
+        # stamps = stamps[is_valid]
+        # quat = quat[is_valid]
 
 
         # Normalize quaternion
@@ -396,15 +396,17 @@ class MocapTrajectory:
         self, stamps: np.ndarray, state_type: str = "SE3"
     ) -> List[SE23State]:
         """
-        Creates navlie ``SE3State`` or ``SE23State`` objects from the trajectory.
+        Creates navlie ``SE3State``, ``SE23State`` or ``IMUState`` objects from
+        the trajectory.
 
         Parameters
         ----------
         stamps : np.ndarray
             query times
-        extended_pose : bool, optional
-            Whether to return an ``SE3State`` or an ``SE23State`` (if true),
-            by default False
+        state_type : str, optional
+            Type of state to return. Must be ``SE3``, ``SE23`` or ``IMU``, by
+            default "SE3". If ``IMU``, then the biases are set to zero.
+            
 
         Returns
         -------
